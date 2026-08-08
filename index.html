@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>WeddingWala - Premium Wedding Venues</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <style>
+    :root {
+      --primary: #e63946;
+      --secondary: #1d3557;
+      --background: #f8f9fa;
+      --surface: #ffffff;
+      --border-color: #e9ecef;
+      --radius: 12px;
+      --shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: var(--background); color: #2b2d42; }
+
+    /* Navbar */
+    .navbar { background: var(--surface); height: 75px; display: flex; justify-content: space-between; align-items: center; padding: 0 5%; border-bottom: 1px solid var(--border-color); position: sticky; top: 0; z-index: 100; }
+    .brand { font-size: 24px; font-weight: 800; color: var(--secondary); text-decoration: none; }
+    .brand i { color: var(--primary); }
+    .admin-btn { border: 2px solid var(--secondary); color: var(--secondary); padding: 8px 18px; border-radius: 8px; font-weight: 600; text-decoration: none; }
+
+    /* Hero */
+    .hero { background: linear-gradient(135deg, #1d3557 0%, #457b9d 100%); color: white; padding: 60px 5% 80px; text-align: center; }
+    .hero h1 { font-size: 2.5rem; font-weight: 800; margin-bottom: 15px; }
+
+    /* Search Container */
+    .search-container { max-width: 900px; margin: -35px auto 40px; background: var(--surface); padding: 20px 25px; border-radius: var(--radius); box-shadow: var(--shadow); display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 15px; }
+    .search-container input, .search-container select { width: 100%; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px; outline: none; background: #f8f9fa; }
+
+    /* Grid Layout */
+    .main-content { max-width: 1200px; margin: 0 auto 60px; padding: 0 20px; }
+    .venues-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 30px; }
+    .venue-card { background: var(--surface); border-radius: var(--radius); overflow: hidden; border: 1px solid var(--border-color); box-shadow: var(--shadow); display: flex; flex-direction: column; }
+    .card-img { width: 100%; height: 200px; object-fit: cover; }
+    .card-body { padding: 20px; display: flex; flex-direction: column; flex-grow: 1; }
+    .venue-title { font-size: 18px; font-weight: 700; color: var(--secondary); margin-bottom: 8px; }
+    .venue-info { font-size: 14px; color: #6c757d; margin-bottom: 12px; }
+    .book-btn { width: 100%; background: var(--primary); color: white; border: none; padding: 12px; border-radius: 8px; font-weight: 700; cursor: pointer; margin-top: auto; }
+
+    /* Modal Overlay */
+    .modal-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 1000; justify-content: center; align-items: center; }
+    .modal-box { background: white; width: 90%; max-width: 450px; padding: 30px; border-radius: var(--radius); position: relative; }
+    .close-modal { position: absolute; top: 15px; right: 20px; font-size: 22px; cursor: pointer; }
+    .modal-form label { font-size: 13px; font-weight: 700; display: block; margin-top: 10px; }
+    .modal-form input { width: 100%; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; margin-top: 4px; }
+    .submit-booking-btn { width: 100%; background: #27ae60; color: white; border: none; padding: 12px; font-size: 16px; font-weight: bold; border-radius: 6px; margin-top: 20px; cursor: pointer; }
+  </style>
+</head>
+<body>
+
+  <nav class="navbar">
+    <a href="#" class="brand"><i class="fa-solid fa-rings-wedding"></i> WeddingWala</a>
+    <a href="admin.html" class="admin-btn"><i class="fa-solid fa-user-gear"></i> Admin Panel</a>
+  </nav>
+
+  <header class="hero">
+    <h1>Find Your Dream Wedding Venue</h1>
+    <p>Discover & book top banquets and marquees across Karachi.</p>
+  </header>
+
+  <div class="search-container">
+    <input type="text" id="searchInput" placeholder="Search by name or location..." onkeyup="filterVenues()">
+    <select id="capacityFilter" onchange="filterVenues()">
+      <option value="">All Capacities</option>
+      <option value="500">Up to 500 Guests</option>
+      <option value="1000">1000+ Guests</option>
+    </select>
+    <select id="sortFilter" onchange="filterVenues()">
+      <option value="default">Sort By</option>
+      <option value="price-low">Price: Low to High</option>
+      <option value="price-high">Price: High to Low</option>
+    </select>
+  </div>
+
+  <main class="main-content">
+    <div class="venues-grid" id="venuesContainer"></div>
+  </main>
+
+  <!-- Booking Modal -->
+  <div class="modal-overlay" id="bookingModal">
+    <div class="modal-box">
+      <span class="close-modal" onclick="closeModal()">&times;</span>
+      <h3 id="modalVenueName">Book Venue</h3>
+      <form class="modal-form" id="bookingForm">
+        <input type="hidden" id="modalVenueId">
+        <label>Your Name</label>
+        <input type="text" id="customerName" required>
+        <label>Phone Number</label>
+        <input type="text" id="customerPhone" required>
+        <label>Event Date</label>
+        <input type="date" id="eventDate" required>
+        <label>Expected Guests</label>
+        <input type="number" id="guestCount" required>
+        <button type="submit" class="submit-booking-btn">Submit Inquiry</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    let allVenues = [];
+
+    async function fetchVenues() {
+      try {
+        const res = await fetch('/api/venues');
+        allVenues = await res.json();
+        renderVenues(allVenues);
+      } catch (err) {
+        document.getElementById('venuesContainer').innerHTML = '<p>Error loading venues.</p>';
+      }
+    }
+
+    function filterVenues() {
+      const query = document.getElementById('searchInput').value.toLowerCase();
+      const capacityVal = document.getElementById('capacityFilter').value;
+      const sortVal = document.getElementById('sortFilter').value;
+
+      let filtered = allVenues.filter(v => {
+        const matchesQuery = v.name.toLowerCase().includes(query) || v.location.toLowerCase().includes(query);
+        let matchesCapacity = true;
+        if (capacityVal === '500') matchesCapacity = v.capacity <= 500;
+        if (capacityVal === '1000') matchesCapacity = v.capacity >= 1000;
+        return matchesQuery && matchesCapacity;
+      });
+
+      if (sortVal === 'price-low') filtered.sort((a, b) => a.pricePerHead - b.pricePerHead);
+      if (sortVal === 'price-high') filtered.sort((a, b) => b.pricePerHead - a.pricePerHead);
+
+      renderVenues(filtered);
+    }
+
+    function renderVenues(venues) {
+      const container = document.getElementById('venuesContainer');
+      container.innerHTML = venues.map(v => `
+        <div class="venue-card">
+          <img src="${v.imageUrl || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?w=600'}" class="card-img" alt="${v.name}">
+          <div class="card-body">
+            <h2 class="venue-title">${v.name}</h2>
+            <p class="venue-info">📍 ${v.location}</p>
+            <p class="venue-info">👥 ${v.capacity} Guests | 💰 PKR ${v.pricePerHead}/head</p>
+            <button class="book-btn" onclick="openModal('${v._id}', '${v.name}')">Book / Inquire Now</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function openModal(id, name) {
+      document.getElementById('modalVenueId').value = id;
+      document.getElementById('modalVenueName').innerText = `Book: ${name}`;
+      document.getElementById('bookingModal').style.display = 'flex';
+    }
+
+    function closeModal() {
+      document.getElementById('bookingModal').style.display = 'none';
+      document.getElementById('bookingForm').reset();
+    }
+
+    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const bookingData = {
+        venueId: document.getElementById('modalVenueId').value,
+        venueName: document.getElementById('modalVenueName').innerText.replace('Book: ', ''),
+        customerName: document.getElementById('customerName').value,
+        customerPhone: document.getElementById('customerPhone').value,
+        eventDate: document.getElementById('eventDate').value,
+        guestCount: Number(document.getElementById('guestCount').value)
+      };
+
+      try {
+        const res = await fetch('/api/bookings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(bookingData)
+        });
+        if (res.ok) {
+          alert('🎉 Inquiry submitted successfully!');
+          closeModal();
+        }
+      } catch (err) {
+        alert('❌ Error submitting inquiry');
+      }
+    });
+
+    fetchVenues();
+  </script>
+</body>
+</html>

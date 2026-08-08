@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WeddingWala - Admin Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Plus Jakarta Sans', sans-serif; }
+    body { background-color: #f4f6f9; color: #2c3e50; padding: 30px 15px; }
+    .container { max-width: 1000px; margin: 0 auto; }
+    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px; }
+    .header h1 { font-size: 26px; font-weight: 800; color: #1d3557; }
+    .back-btn { text-decoration: none; color: #e63946; font-weight: 700; border: 2px solid #e63946; padding: 8px 16px; border-radius: 6px; }
+
+    /* Tabs */
+    .tabs { display: flex; gap: 10px; margin-bottom: 20px; }
+    .tab-btn { padding: 12px 24px; border: none; background: #e2e8f0; font-weight: 700; border-radius: 8px; cursor: pointer; color: #475569; }
+    .tab-btn.active { background: #1d3557; color: white; }
+
+    .card { background: #fff; padding: 25px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 30px; }
+    .card h2 { font-size: 20px; margin-bottom: 20px; color: #1d3557; border-bottom: 2px solid #f0f0f0; padding-bottom: 10px; }
+
+    .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; }
+    .form-group { display: flex; flex-direction: column; }
+    label { font-weight: 600; font-size: 13px; margin-bottom: 5px; color: #555; }
+    input { padding: 11px; border: 1px solid #ccc; border-radius: 6px; font-size: 14px; outline: none; }
+
+    .btn-container { margin-top: 20px; display: flex; gap: 10px; }
+    button { padding: 10px 16px; border: none; border-radius: 6px; font-weight: 700; cursor: pointer; font-size: 14px; }
+    .btn-save { background: #27ae60; color: white; flex: 1; }
+    .btn-cancel { background: #95a5a6; color: white; display: none; }
+
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+    th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; font-size: 14px; }
+    th { background: #1d3557; color: white; font-weight: 600; }
+    .img-preview { width: 50px; height: 40px; object-fit: cover; border-radius: 4px; }
+
+    .badge { padding: 4px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; background: #f39c12; color: white; }
+    .btn-delete { background: #e74c3c; color: white; }
+    .btn-edit { background: #f39c12; color: white; }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <div class="header">
+      <h1><i class="fa-solid fa-user-gear"></i> Admin Dashboard</h1>
+      <a href="/" class="back-btn"><i class="fa-solid fa-house"></i> View Website</a>
+    </div>
+
+    <!-- Navigation Tabs -->
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('venuesTab', this)">Manage Venues</button>
+      <button class="tab-btn" onclick="switchTab('bookingsTab', this)">Customer Inquiries</button>
+    </div>
+
+    <!-- VENUES TAB -->
+    <div id="venuesTab">
+      <div class="card">
+        <h2 id="formTitle"><i class="fa-solid fa-plus-circle"></i> Add New Venue</h2>
+        <form id="venueForm" enctype="multipart/form-data">
+          <input type="hidden" id="venueId">
+          <div class="form-grid">
+            <div class="form-group"><label>Venue Name</label><input type="text" id="name" required></div>
+            <div class="form-group"><label>Location</label><input type="text" id="location" required></div>
+            <div class="form-group"><label>Capacity</label><input type="number" id="capacity" required></div>
+            <div class="form-group"><label>Price Per Head</label><input type="number" id="pricePerHead" required></div>
+            <div class="form-group"><label>Contact</label><input type="text" id="contactNumber" required></div>
+            <div class="form-group"><label>Image</label><input type="file" id="image" accept="image/*"></div>
+          </div>
+          <div class="btn-container">
+            <button type="submit" class="btn-save" id="submitBtn">Save Venue</button>
+            <button type="button" class="btn-cancel" id="cancelBtn" onclick="resetForm()">Cancel</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <h2>Existing Venues</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Name</th>
+              <th>Location</th>
+              <th>Capacity</th>
+              <th>Price</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="venuesTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- BOOKINGS TAB -->
+    <div id="bookingsTab" style="display: none;">
+      <div class="card">
+        <h2><i class="fa-solid fa-envelope-open-text"></i> Customer Booking Inquiries</h2>
+        <table>
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Phone</th>
+              <th>Venue Name</th>
+              <th>Event Date</th>
+              <th>Guests</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="bookingsTable"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    let isEditing = false;
+
+    function switchTab(tabId, btn) {
+      document.getElementById('venuesTab').style.display = tabId === 'venuesTab' ? 'block' : 'none';
+      document.getElementById('bookingsTab').style.display = tabId === 'bookingsTab' ? 'block' : 'none';
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (tabId === 'bookingsTab') loadBookings();
+    }
+
+    async function loadVenues() {
+      const res = await fetch('/api/venues');
+      const venues = await res.json();
+      const tbody = document.getElementById('venuesTable');
+      tbody.innerHTML = venues.map(v => `
+        <tr>
+          <td><img src="${v.imageUrl || 'https://via.placeholder.com/50'}" class="img-preview"></td>
+          <td><strong>${v.name}</strong></td>
+          <td>${v.location}</td>
+          <td>${v.capacity}</td>
+          <td>PKR ${v.pricePerHead}</td>
+          <td>
+            <button class="btn-edit" onclick="setupEdit('${v._id}', '${v.name}', '${v.location}', ${v.capacity}, ${v.pricePerHead}, '${v.contactNumber}')"><i class="fa-solid fa-pen"></i></button>
+            <button class="btn-delete" onclick="deleteVenue('${v._id}')"><i class="fa-solid fa-trash"></i></button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    async function loadBookings() {
+      const res = await fetch('/api/bookings');
+      const bookings = await res.json();
+      const tbody = document.getElementById('bookingsTable');
+      if (bookings.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">No inquiries received yet.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = bookings.map(b => `
+        <tr>
+          <td><strong>${b.customerName}</strong></td>
+          <td><a href="tel:${b.customerPhone}" style="color:#27ae60; font-weight:bold;">${b.customerPhone}</a></td>
+          <td>${b.venueName}</td>
+          <td>${b.eventDate}</td>
+          <td>${b.guestCount} Guests</td>
+          <td>
+            <button class="btn-delete" onclick="deleteBooking('${b._id}')"><i class="fa-solid fa-trash"></i> Delete</button>
+          </td>
+        </tr>
+      `).join('');
+    }
+
+    document.getElementById('venueForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const formData = new FormData();
+      formData.append('name', document.getElementById('name').value);
+      formData.append('location', document.getElementById('location').value);
+      formData.append('capacity', document.getElementById('capacity').value);
+      formData.append('pricePerHead', document.getElementById('pricePerHead').value);
+      formData.append('contactNumber', document.getElementById('contactNumber').value);
+
+      const fileInput = document.getElementById('image');
+      if (fileInput.files[0]) formData.append('image', fileInput.files[0]);
+
+      const id = document.getElementById('venueId').value;
+      const url = isEditing ? `/api/venues/${id}` : '/api/venues';
+      const method = isEditing ? 'PUT' : 'POST';
+
+      await fetch(url, { method, body: formData });
+      resetForm();
+      loadVenues();
+    });
+
+    async function deleteVenue(id) {
+      if (confirm('Delete venue?')) {
+        await fetch(`/api/venues/${id}`, { method: 'DELETE' });
+        loadVenues();
+      }
+    }
+
+    async function deleteBooking(id) {
+      if (confirm('Delete inquiry?')) {
+        await fetch(`/api/bookings/${id}`, { method: 'DELETE' });
+        loadBookings();
+      }
+    }
+
+    function setupEdit(id, name, location, capacity, price, contact) {
+      isEditing = true;
+      document.getElementById('venueId').value = id;
+      document.getElementById('name').value = name;
+      document.getElementById('location').value = location;
+      document.getElementById('capacity').value = capacity;
+      document.getElementById('pricePerHead').value = price;
+      document.getElementById('contactNumber').value = contact;
+      document.getElementById('formTitle').innerText = 'Edit Venue';
+      document.getElementById('cancelBtn').style.display = 'block';
+    }
+
+    function resetForm() {
+      isEditing = false;
+      document.getElementById('venueForm').reset();
+      document.getElementById('venueId').value = '';
+      document.getElementById('formTitle').innerText = 'Add New Venue';
+      document.getElementById('cancelBtn').style.display = 'none';
+    }
+
+    loadVenues();
+  </script>
+</body>
+</html>
