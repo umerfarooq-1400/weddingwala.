@@ -1,14 +1,12 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use(express.static(path.join(__dirname, '../')));
-
+// Schemas
 const venueSchema = new mongoose.Schema({
   name: String,
   location: String,
@@ -58,7 +56,7 @@ async function connectDB() {
     await mongoose.connect(dbUri);
     isConnected = true;
   } catch (err) {
-    console.log("DB Connection Warning (using sample data)");
+    console.log("Using sample data fallback");
   }
 }
 
@@ -67,6 +65,7 @@ app.use(async (req, res, next) => {
   next();
 });
 
+// API Routes
 app.get('/api/venues', async (req, res) => {
   try {
     let venues = await Venue.find();
@@ -94,14 +93,6 @@ app.post('/api/bookings', async (req, res) => {
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
-});
-
-app.get('/admin', (req, res) => {
-  res.sendFile(path.join(__dirname, '../admin.html'));
-});
-
-app.get('*', (req, res) => {
-  res.sendFile(path.join(__dirname, '../index.html'));
 });
 
 module.exports = app;
