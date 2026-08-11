@@ -1,10 +1,21 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const fs = require('fs');
+const path = require('path');
 
 const app = express();
 app.use(express.json());
 app.use(cors());
+
+// Vercel-compatible writable uploads folder (/tmp)
+const uploadDir = process.env.VERCEL ? '/tmp/uploads' : path.join(__dirname, '../uploads');
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+// Static directory serving
+app.use(express.static(path.join(__dirname, '../')));
 
 // Schemas
 const venueSchema = new mongoose.Schema({
@@ -29,6 +40,7 @@ const bookingSchema = new mongoose.Schema({
 });
 const Booking = mongoose.models.Booking || mongoose.model('Booking', bookingSchema);
 
+// Sample Venues Fallback
 const sampleVenues = [
   {
     name: "Royal Palace Banquet",
@@ -48,6 +60,7 @@ const sampleVenues = [
   }
 ];
 
+// Database Connection
 let isConnected = false;
 async function connectDB() {
   if (isConnected) return;
@@ -56,7 +69,7 @@ async function connectDB() {
     await mongoose.connect(dbUri);
     isConnected = true;
   } catch (err) {
-    console.log("Using sample data fallback");
+    console.log("DB Connection Warning (using sample data)");
   }
 }
 
