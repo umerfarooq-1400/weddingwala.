@@ -2,6 +2,7 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
+const path = require('path');
 
 // Import Schemas
 const Venue = require('./models/Venue');
@@ -15,7 +16,10 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serverless-Friendly Optimized MongoDB Connection
+// Serve Static Frontend Files (index.html, admin.html, styles, scripts)
+app.use(express.static(path.join(__dirname, '/')));
+
+// Serverless-Friendly MongoDB Connection Handler
 let isConnected = false;
 async function connectToDatabase() {
     if (isConnected && mongoose.connection.readyState === 1) {
@@ -38,9 +42,14 @@ app.use(async (req, res, next) => {
     next();
 });
 
-// Root Health Check Route
+// Serve Main Homepage UI
 app.get('/', (req, res) => {
-    res.json({ success: true, message: "WeddingWala API Backend is Running Successfully on Vercel!" });
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Root API Health Check Endpoint
+app.get('/api/health', (req, res) => {
+    res.json({ success: true, message: "WeddingWala API Backend is Running Successfully!" });
 });
 
 // =========================================================================
@@ -167,7 +176,7 @@ app.post('/api/payments/process-token', async (req, res) => {
     }
 });
 
-// Vercel Safe PDF Invoice Route
+// Vercel-Safe PDF Invoice Route
 app.get('/api/bookings/invoice/:bookingId', async (req, res) => {
     try {
         const PDFDocument = require('pdfkit');
@@ -251,5 +260,13 @@ app.get('/api/reviews/:venueId', async (req, res) => {
         res.status(500).json({ success: false, message: err.message });
     }
 });
+
+// Local Execution
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`WeddingWala Local Server running on port ${PORT}`);
+    });
+}
 
 module.exports = app;
