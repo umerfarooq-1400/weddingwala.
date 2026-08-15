@@ -3,455 +3,196 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WeddingWala - Venue Booking Marketplace</title>
-    <style>
-        :root {
-            --primary: #1d3557;
-            --secondary: #457b9d;
-            --accent: #e63946;
-            --success: #2a9d8f;
-            --bg: #f8fafc;
-            --card-bg: #ffffff;
-            --text: #1e293b;
-            --border: #cbd5e1;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg);
-            color: var(--text);
-            margin: 0;
-            padding: 0;
-        }
-
-        header {
-            background-color: var(--primary);
-            color: white;
-            padding: 20px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        }
-
-        header h1 {
-            margin: 0;
-            font-size: 24px;
-        }
-
-        .container {
-            max-width: 1100px;
-            margin: 30px auto;
-            padding: 0 20px;
-        }
-
-        .section-title {
-            color: var(--primary);
-            border-bottom: 2px solid var(--secondary);
-            padding-bottom: 8px;
-            margin-bottom: 24px;
-        }
-
-        /* Venue Grid */
-        .venue-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-
-        .venue-card {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
-            transition: transform 0.2s;
-        }
-
-        .venue-card:hover {
-            transform: translateY(-4px);
-        }
-
-        .venue-card h3 {
-            margin-top: 0;
-            color: var(--primary);
-        }
-
-        .rating-badge {
-            background: #fef3c7;
-            color: #d97706;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 13px;
-            font-weight: bold;
-            display: inline-block;
-            margin-bottom: 10px;
-        }
-
-        .btn {
-            background-color: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            width: 100%;
-            margin-top: 10px;
-        }
-
-        .btn:hover {
-            background-color: var(--secondary);
-        }
-
-        .btn-success {
-            background-color: var(--success);
-        }
-
-        /* Booking Modal / Section */
-        .booking-box {
-            background: var(--card-bg);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 25px;
-            margin-bottom: 40px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
-        }
-
-        .form-group {
-            margin-bottom: 15px;
-        }
-
-        .form-group label {
-            display: block;
-            font-weight: bold;
-            margin-bottom: 5px;
-            font-size: 14px;
-        }
-
-        .form-group input, .form-group select, .form-group textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            box-sizing: border-box;
-        }
-
-        /* Confirmation Box */
-        .confirmation-box {
-            display: none;
-            background: #f0fdf4;
-            border: 1px solid #86efac;
-            border-radius: 8px;
-            padding: 20px;
-            margin-top: 20px;
-        }
-    </style>
+    <title>WeddingWala - Venue Discovery & Slot Booking</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-slate-50 text-slate-800 font-sans antialiased">
 
-    <header>
-        <h1>WeddingWala</h1>
-        <span>Karachi's Premium Venue Marketplace</span>
+    <!-- Header Navigation -->
+    <header class="bg-white shadow-sm sticky top-0 z-40">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 font-bold text-2xl text-rose-600">
+                <i class="fa-solid font-bold fa-ring"></i>
+                <span>Wedding<span class="text-slate-900">Wala</span></span>
+            </a>
+            <nav class="hidden md:flex items-center gap-6 font-medium text-sm">
+                <a href="/" class="text-rose-600">Venues</a>
+                <a href="/owner-dashboard.html" class="text-slate-600 hover:text-rose-600">Venue Owner Portal</a>
+                <a href="/admin.html" class="text-slate-600 hover:text-rose-600">Admin Panel</a>
+            </nav>
+            <a href="/list-venue.html" class="bg-rose-600 hover:bg-rose-700 text-white px-4 py-2 rounded-lg text-sm font-semibold transition">
+                List Your Venue
+            </a>
+        </div>
     </header>
 
-    <div class="container">
-
-        <!-- VENUES LISTING SECTION -->
-        <h2 class="section-title">Available Banquets & Venues</h2>
-        <div id="venueGrid" class="venue-grid">
-            <p style="color: #64748b;">Loading venues...</p>
-        </div>
-
-        <!-- BOOKING & LOCK SLOT SECTION -->
-        <div id="bookingSection" class="booking-box" style="display: none;">
-            <h2 id="selectedVenueTitle" class="section-title" style="margin-top: 0;">Reserve Your Date</h2>
+    <!-- Hero Search Section -->
+    <section class="bg-gradient-to-r from-rose-900 via-rose-800 to-slate-900 text-white py-16 px-4 text-center">
+        <div class="max-w-4xl mx-auto">
+            <h1 class="text-3xl md:text-5xl font-extrabold mb-4">Find & Lock Your Perfect Wedding Venue</h1>
+            <p class="text-rose-100 text-base md:text-lg mb-8">Transparent pricing, real-time availability, and instant slot reservations in Karachi.</p>
             
-            <form id="slotLockForm" onsubmit="handleSlotLock(event)">
-                <input type="hidden" id="venueId">
-
-                <div class="form-group">
-                    <label>Your Full Name:</label>
-                    <input type="text" id="custName" required placeholder="e.g. Ali Ahmed">
-                </div>
-
-                <div class="form-group">
-                    <label>WhatsApp / Mobile Number:</label>
-                    <input type="text" id="custPhone" required placeholder="03001234567">
-                </div>
-
-                <div class="form-group">
-                    <label>Email Address (Optional):</label>
-                    <input type="email" id="custEmail" placeholder="ali@example.com">
-                </div>
-
-                <div style="display: flex; gap: 15px;">
-                    <div class="form-group" style="flex: 1;">
-                        <label>Event Date:</label>
-                        <input type="date" id="eventDate" required>
-                    </div>
-
-                    <div class="form-group" style="flex: 1;">
-                        <label>Event Slot:</label>
-                        <select id="eventSlot" required>
-                            <option value="Lunch">Lunch Slot</option>
-                            <option value="Dinner">Dinner Slot</option>
-                        </select>
-                    </div>
-                </div>
-
-                <div class="form-group">
-                    <label>Expected Guests:</label>
-                    <input type="number" id="guestCount" value="300" required>
-                </div>
-
-                <button type="submit" class="btn">Lock Slot & Proceed to Payment</button>
-            </form>
-
-            <!-- TOKEN PAYMENT STEP -->
-            <div id="paymentStep" style="display: none; margin-top: 20px; border-top: 1px solid #e2e8f0; padding-top: 20px;">
-                <h3 style="color: var(--primary);">Step 2: Pay Token Deposit (Rs. 10,000)</h3>
-                <p style="font-size: 14px; color: #475569;">Slot 15 minutes ke liye temp-lock kar diya gaya hai. Token amount JazzCash ya EasyPaisa se pay karein.</p>
-                
-                <div class="form-group">
-                    <label>Payment Method:</label>
-                    <select id="payMethod">
-                        <option value="JazzCash">JazzCash Mobile Wallet</option>
-                        <option value="EasyPaisa">EasyPaisa Mobile Wallet</option>
-                    </select>
-                </div>
-
-                <button onclick="processTokenPayment()" class="btn btn-success">Confirm Payment & Dispatch Receipt</button>
-            </div>
-
-            <!-- SUCCESS & RECEIPT DOWNLOAD -->
-            <div id="confirmationBox" class="confirmation-box">
-                <h3 style="color: var(--success); margin-top: 0;">🎉 Booking Confirmed!</h3>
-                <p style="font-size: 14px; color: #334155;">Aap ki booking confirm ho chuki hai. Instant SMS aur WhatsApp alert bhej diya gaya hai.</p>
-                <button id="downloadPdfBtn" onclick="downloadPDFReceipt()" class="btn" style="background: var(--primary);">
-                    📄 Download Official PDF Receipt
+            <!-- Search Filter Bar -->
+            <div class="bg-white p-3 rounded-2xl shadow-xl text-slate-800 flex flex-col md:flex-row gap-3">
+                <input type="text" id="searchInput" placeholder="Search by area or venue name..." class="flex-1 px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <input type="date" id="dateFilter" class="px-4 py-3 border rounded-xl focus:outline-none focus:ring-2 focus:ring-rose-500">
+                <button onclick="fetchVenues()" class="bg-rose-600 hover:bg-rose-700 text-white px-8 py-3 rounded-xl font-bold transition">
+                    Search
                 </button>
             </div>
         </div>
+    </section>
 
-        <!-- REVIEWS & REVIEWS SUBMISSION SECTION -->
-        <div id="reviewsSection" class="booking-box" style="display: none;">
-            <h2 class="section-title">Customer Reviews & Ratings</h2>
-            
-            <div class="form-group">
-                <label>Your Name:</label>
-                <input type="text" id="revName" placeholder="Ali Ahmed">
-            </div>
-
-            <div class="form-group">
-                <label>Rating:</label>
-                <select id="revRating">
-                    <option value="5">⭐⭐⭐⭐⭐ 5 - Excellent</option>
-                    <option value="4">⭐⭐⭐⭐ 4 - Very Good</option>
-                    <option value="3">⭐⭐⭐ 3 - Average</option>
-                    <option value="2">⭐⭐ 2 - Poor</option>
-                    <option value="1">⭐ 1 - Very Bad</option>
-                </select>
-            </div>
-
-            <div class="form-group">
-                <label>Comment:</label>
-                <textarea id="revComment" rows="3" placeholder="Hall experience, food aur management ke bare mein likhein..."></textarea>
-            </div>
-
-            <button onclick="submitReview()" class="btn" style="background: var(--secondary);">Submit Review</button>
-
-            <div id="reviewsList" style="margin-top: 25px;"></div>
+    <!-- Venue Marketplace Grid -->
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="flex justify-between items-center mb-8">
+            <h2 class="text-2xl font-bold text-slate-900">Featured Banquets & Venues</h2>
+            <span id="venueCount" class="text-sm font-semibold bg-rose-100 text-rose-700 px-3 py-1 rounded-full">Loading...</span>
         </div>
 
+        <div id="venueGrid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            <!-- Dynamic Cards Will Load Here -->
+        </div>
+    </main>
+
+    <!-- Booking / Slot Lock Modal -->
+    <div id="bookingModal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4 z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-lg w-full p-6 relative shadow-2xl">
+            <button onclick="closeModal()" class="absolute top-4 right-4 text-slate-400 hover:text-slate-600 text-xl font-bold">&times;</button>
+            <h3 class="text-xl font-bold text-slate-900 mb-2">Hold / Lock Event Slot</h3>
+            <p id="modalVenueName" class="text-sm text-slate-500 mb-4"></p>
+
+            <form id="bookingForm" onsubmit="handleSlotLock(event)" class="space-y-4">
+                <input type="hidden" id="modalVenueId">
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Your Full Name</label>
+                    <input type="text" id="custName" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500">
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Phone Number (WhatsApp)</label>
+                    <input type="tel" id="custPhone" required placeholder="03001234567" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500">
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Date</label>
+                        <input type="date" id="bookDate" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Slot</label>
+                        <select id="bookSlot" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500">
+                            <option value="Night">Night (7 PM - 10 PM)</option>
+                            <option value="Day">Day (1 PM - 4 PM)</option>
+                        </select>
+                    </div>
+                </div>
+                <div>
+                    <label class="block text-xs font-bold uppercase text-slate-600 mb-1">Expected Guests</label>
+                    <input type="number" id="guestCount" placeholder="300" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-rose-500">
+                </div>
+
+                <button type="submit" id="submitBtn" class="w-full bg-rose-600 hover:bg-rose-700 text-white font-bold py-3 rounded-lg transition mt-2">
+                    Lock Slot Now
+                </button>
+            </form>
+        </div>
     </div>
 
+    <!-- Script to Handle API Requests -->
     <script>
-        const API_BASE_URL = 'http://localhost:5000'; // Render deployment par apna production URL set karein
-        let activeBookingId = null;
-        let selectedVenueId = null;
-
-        // 1. Fetch & Display All Approved Venues
         async function fetchVenues() {
             try {
-                const res = await fetch(`${API_BASE_URL}/api/venues`);
+                const res = await fetch('/api/venues');
                 const data = await res.json();
                 
                 const grid = document.getElementById('venueGrid');
+                const count = document.getElementById('venueCount');
                 grid.innerHTML = '';
 
-                if (!data.venues || data.venues.length === 0) {
-                    grid.innerHTML = '<p>Koi venue available nahi hai.</p>';
-                    return;
+                if (data.success && data.venues.length > 0) {
+                    count.textContent = `${data.venues.length} Available`;
+                    data.venues.forEach(venue => {
+                        grid.innerHTML += `
+                            <div class="bg-white rounded-2xl border shadow-sm hover:shadow-md transition overflow-hidden">
+                                <img src="${venue.images?.[0] || 'https://images.unsplash.com/photo-1519167758481-83f550bb49b3?auto=format&fit=crop&w=600&q=80'}" class="w-full h-48 object-cover">
+                                <div class="p-5">
+                                    <div class="flex justify-between items-start mb-2">
+                                        <h3 class="font-bold text-lg text-slate-900">${venue.name}</h3>
+                                        <span class="text-xs bg-amber-100 text-amber-800 font-bold px-2 py-1 rounded">★ ${venue.avgRating || '4.5'}</span>
+                                    </div>
+                                    <p class="text-slate-500 text-sm mb-4"><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> ${venue.address || 'Karachi'}</p>
+                                    <div class="flex justify-between items-center border-t pt-4">
+                                        <div>
+                                            <span class="text-xs text-slate-400 block">Starting from</span>
+                                            <span class="font-extrabold text-slate-900">Rs. ${Number(venue.capacity ? venue.capacity * 1000 : 150000).toLocaleString()}</span>
+                                        </div>
+                                        <button onclick="openModal('${venue._id}', '${venue.name}')" class="bg-rose-600 text-white text-xs font-bold px-4 py-2 rounded-lg hover:bg-rose-700">
+                                            Lock Slot
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                    });
+                } else {
+                    count.textContent = '0 Found';
+                    grid.innerHTML = `<p class="col-span-full text-center text-slate-500 py-12">No approved venues found right now.</p>`;
                 }
-
-                data.venues.forEach(venue => {
-                    const stars = venue.avgRating ? `⭐ ${venue.avgRating} (${venue.totalReviews || 0} reviews)` : '⭐ New Venue';
-                    const card = `
-                        <div class="venue-card">
-                            <span class="rating-badge">${stars}</span>
-                            <h3>${venue.name}</h3>
-                            <p style="font-size: 13px; color: #64748b;">📍 ${venue.address}, ${venue.city}</p>
-                            <p style="font-weight: bold; color: var(--primary);">Base Package: Rs. ${Number(venue.basePrice).toLocaleString()}</p>
-                            <button class="btn" onclick="selectVenue('${venue._id}', '${venue.name}', ${venue.basePrice})">Book Venue</button>
-                        </div>
-                    `;
-                    grid.innerHTML += card;
-                });
             } catch (err) {
-                console.error("Venues fetch error:", err);
+                console.error(err);
             }
         }
 
-        // 2. Select Venue
-        function selectVenue(id, name, price) {
-            selectedVenueId = id;
-            document.getElementById('venueId').value = id;
-            document.getElementById('selectedVenueTitle').innerText = `Reserve ${name}`;
-            document.getElementById('bookingSection').style.display = 'block';
-            document.getElementById('reviewsSection').style.display = 'block';
-            
-            // Set minimum date to today
-            document.getElementById('eventDate').min = new Date().toISOString().split('T')[0];
-
-            loadVenueReviews(id);
-            window.scrollTo({ top: document.getElementById('bookingSection').offsetTop - 20, behavior: 'smooth' });
+        function openModal(id, name) {
+            document.getElementById('modalVenueId').value = id;
+            document.getElementById('modalVenueName').textContent = name;
+            document.getElementById('bookingModal').classList.remove('hidden');
         }
 
-        // 3. Lock Slot Endpoint Call
+        function closeModal() {
+            document.getElementById('bookingModal').classList.add('hidden');
+        }
+
         async function handleSlotLock(e) {
             e.preventDefault();
+            const submitBtn = document.getElementById('submitBtn');
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Processing...';
 
             const payload = {
-                venueId: document.getElementById('venueId').value,
+                venueId: document.getElementById('modalVenueId').value,
                 customerName: document.getElementById('custName').value,
                 customerPhone: document.getElementById('custPhone').value,
-                customerEmail: document.getElementById('custEmail').value,
-                bookingDate: document.getElementById('eventDate').value,
-                slot: document.getElementById('eventSlot').value,
-                guestCount: Number(document.getElementById('guestCount').value),
-                totalAmount: 150000 // Standard base price or dynamic price
+                bookingDate: document.getElementById('bookDate').value,
+                slot: document.getElementById('bookSlot').value,
+                guestCount: document.getElementById('guestCount').value,
+                status: 'Pending'
             };
 
             try {
-                const res = await fetch(`${API_BASE_URL}/api/bookings/lock-slot`, {
+                const res = await fetch('/api/bookings/lock-slot', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-
                 const data = await res.json();
+
                 if (data.success) {
-                    activeBookingId = data.bookingId;
-                    alert(data.message);
-                    document.getElementById('paymentStep').style.display = 'block';
+                    alert('Slot locked successfully!');
+                    closeModal();
                 } else {
-                    alert(`Error: ${data.message}`);
+                    alert(data.message || 'Slot locking failed.');
                 }
             } catch (err) {
-                alert("Server error: Slot lock nahi ho saka.");
+                alert('Server error occurred.');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Lock Slot Now';
             }
         }
 
-        // 4. Process Payment Endpoint Call
-        async function processTokenPayment() {
-            if (!activeBookingId) return alert("Pehle slot lock karein.");
-
-            const phone = document.getElementById('custPhone').value;
-
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/payments/process-token`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        bookingId: activeBookingId,
-                        customerPhone: phone,
-                        depositAmount: 10000
-                    })
-                });
-
-                const data = await res.json();
-                if (data.success) {
-                    document.getElementById('confirmationBox').style.display = 'block';
-                    document.getElementById('paymentStep').style.display = 'none';
-                    alert(data.message);
-                } else {
-                    alert(`Payment failed: ${data.message}`);
-                }
-            } catch (err) {
-                alert("Payment process karne mein error aaya.");
-            }
-        }
-
-        // 5. Download PDF Receipt
-        function downloadPDFReceipt() {
-            if (!activeBookingId) return;
-            const pdfUrl = `${API_BASE_URL}/api/bookings/invoice/${activeBookingId}`;
-            window.open(pdfUrl, '_blank');
-        }
-
-        // 6. Fetch Venue Reviews
-        async function loadVenueReviews(venueId) {
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/reviews/${venueId}`);
-                const data = await res.json();
-                const container = document.getElementById('reviewsList');
-                container.innerHTML = '';
-
-                if (!data.reviews || data.reviews.length === 0) {
-                    container.innerHTML = '<p style="font-size: 13px; color: #64748b;">Abhi tak koi review nahi hai.</p>';
-                    return;
-                }
-
-                data.reviews.forEach(rev => {
-                    const stars = '⭐'.repeat(rev.rating);
-                    container.innerHTML += `
-                        <div style="background: #f1f5f9; padding: 12px; border-radius: 6px; margin-bottom: 10px;">
-                            <strong>${rev.customerName}</strong> - ${stars}
-                            <p style="margin: 5px 0 0 0; font-size: 13px; color: #334155;">${rev.comment}</p>
-                        </div>
-                    `;
-                });
-            } catch (err) {
-                console.error("Reviews error:", err);
-            }
-        }
-
-        // 7. Submit New Review
-        async function submitReview() {
-            const name = document.getElementById('revName').value;
-            const rating = document.getElementById('revRating').value;
-            const comment = document.getElementById('revComment').value;
-
-            if (!name || !comment) return alert("Naam aur comment dono enter karein.");
-
-            try {
-                const res = await fetch(`${API_BASE_URL}/api/reviews/add`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        venueId: selectedVenueId,
-                        customerName: name,
-                        rating: rating,
-                        comment: comment
-                    })
-                });
-
-                const data = await res.json();
-                alert(data.message);
-                if (data.success) {
-                    document.getElementById('revName').value = '';
-                    document.getElementById('revComment').value = '';
-                    loadVenueReviews(selectedVenueId);
-                    fetchVenues(); // Refresh rating badge
-                }
-            } catch (err) {
-                alert("Review error.");
-            }
-        }
-
-        // Initialize App
+        // Initialize Market Data
         fetchVenues();
     </script>
 </body>
