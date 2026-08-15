@@ -17,10 +17,26 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Database Connection
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/weddingwala')
-    .then(() => console.log('MongoDB Database Connected Successfully'))
-    .catch(err => console.error('MongoDB Connection Error:', err));
+// Serverless-Friendly MongoDB Connection Handler
+let isConnected = false;
+async function connectToDatabase() {
+    if (isConnected && mongoose.connection.readyState === 1) {
+        return;
+    }
+    try {
+        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/weddingwala');
+        isConnected = true;
+        console.log('MongoDB Database Connected');
+    } catch (err) {
+        console.error('MongoDB Connection Error:', err);
+    }
+}
+
+// Middleware to ensure DB connection on every request
+app.use(async (req, res, next) => {
+    await connectToDatabase();
+    next();
+});
 
 // Initialize Twilio Client
 const twilioClient = twilio(
@@ -67,11 +83,16 @@ async function sendBookingNotifications({ customerPhone, managerPhone, customerN
     }
 }
 
+// Root Status Check Endpoint
+app.get('/', (req, res) => {
+    res.json({ status: "WeddingWala API Backend is Running Successfully!" });
+});
+
 // =========================================================================
 // 1. VENUE ROUTES
 // =========================================================================
 
-// Fetch All Approved Venues with Avg Ratings
+// Fetch All Approved Venues
 app.get('/api/venues', async (req, res) => {
     try {
         const venues = await Venue.find({ isApproved: true }).sort({ avgRating: -1 });
@@ -92,16 +113,30 @@ app.post('/api/venues/register', async (req, res) => {
     }
 });
 
+// Approve/Reject Venue (Admin)
+app.patch('/api/venues/approve/:id', async (req, res) => {
+    try {
+        const { isApproved } = req.body;
+        const updatedVenue = await Venue.findByIdAndUpdate(
+            req.params.id,
+            { isApproved },
+            { new: true }
+        );
+        res.json({ success: true, message: `Venue status updated!`, venue: updatedVenue });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
 // =========================================================================
 // 2. BOOKING & SLOT LOCK ROUTES
 // =========================================================================
 
-// Reserve Slot & Initialize Pending Booking (Double Booking Prevention)
+// Reserve Slot & Lock
 app.post('/api/bookings/lock-slot', async (req, res) => {
     try {
-        const { venueId, customerName, customerPhone, customerEmail, bookingDate, slot, guestCount, totalAmount } = req.body;
+        const { venueId, customerName, customerPhone, customerEmail, bookingDate, slot, guestCount, totalAmount, status, depositPaid } = req.body;
 
-        // Check active lock/conflict
         const existingBooking = await Booking.findOne({
             venueId,
             bookingDate,
@@ -125,14 +160,15 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
             slot,
             guestCount,
             totalAmount,
-            status: 'Pending'
+            depositPaid: depositPaid || 0,
+            status: status || 'Pending'
         });
 
         await newBooking.save();
 
         res.status(201).json({ 
             success: true, 
-            message: "Slot 15 minutes ke liye hold kar diya gaya hai. Advance deposit pay karein.", 
+            message: status === 'Confirmed' ? "Slot offline confirm ho gaya!" : "Slot 15 minutes ke liye hold kar diya gaya hai.", 
             bookingId: newBooking._id 
         });
 
@@ -144,7 +180,17 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
     }
 });
 
-// Process Token Deposit Payment (JazzCash / EasyPaisa Webhook/Callback simulation)
+// Get Venue Bookings (Owner)
+app.get('/api/bookings/venue/:venueId', async (req, res) => {
+    try {
+        const bookings = await Booking.find({ venueId: req.params.venueId }).sort({ bookingDate: 1 });
+        res.json({ success: true, count: bookings.length, bookings });
+    } catch (err) {
+        res.status(500).json({ success: false, message: err.message });
+    }
+});
+
+// Process Token Deposit Payment
 app.post('/api/payments/process-token', async (req, res) => {
     try {
         const { bookingId, customerPhone, depositAmount } = req.body;
@@ -164,7 +210,6 @@ app.post('/api/payments/process-token', async (req, res) => {
         const venueName = booking.venueId ? booking.venueId.name : 'Banquet Hall';
         const managerPhone = booking.venueId ? booking.venueId.contactPhone : null;
 
-        // Async dispatch alerts
         sendBookingNotifications({
             customerPhone: customerPhone || booking.customerPhone,
             managerPhone,
@@ -215,7 +260,7 @@ app.get('/api/bookings/invoice/:bookingId', async (req, res) => {
 
         doc.moveTo(50, 105).lineTo(550, 105).strokeColor('#e2e8f0').stroke();
 
-        // Customer & Venue Details
+        // Details
         doc.fontSize(11).fillColor('#1d3557').text('Customer Details:', 50, 120, { bold: true });
         doc.fontSize(10).fillColor('#334155')
            .text(`Name: ${booking.customerName}`)
@@ -281,7 +326,6 @@ app.get('/api/bookings/invoice/:bookingId', async (req, res) => {
 // 4. REVIEWS & RATING AGGREGATION ROUTES
 // =========================================================================
 
-// Add Review & Recalculate Avg Rating
 app.post('/api/reviews/add', async (req, res) => {
     try {
         const { venueId, customerName, customerEmail, rating, comment } = req.body;
@@ -299,7 +343,6 @@ app.post('/api/reviews/add', async (req, res) => {
         });
         await newReview.save();
 
-        // MongoDB Aggregation Pipeline
         const stats = await Review.aggregate([
             { $match: { venueId: new mongoose.Types.ObjectId(venueId) } },
             {
@@ -326,7 +369,6 @@ app.post('/api/reviews/add', async (req, res) => {
     }
 });
 
-// Fetch Venue Reviews
 app.get('/api/reviews/:venueId', async (req, res) => {
     try {
         const reviews = await Review.find({ venueId: req.params.venueId }).sort({ createdAt: -1 });
@@ -336,8 +378,12 @@ app.get('/api/reviews/:venueId', async (req, res) => {
     }
 });
 
-// Start Express Server
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-    console.log(`WeddingWala Backend API running on port ${PORT}`);
-});
+// Export for Vercel Serverless Function & Support Local Server
+if (process.env.NODE_ENV !== 'production') {
+    const PORT = process.env.PORT || 5000;
+    app.listen(PORT, () => {
+        console.log(`WeddingWala Local Server running on port ${PORT}`);
+    });
+}
+
+module.exports = app;
