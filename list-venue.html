@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeddingWala - Register Your Venue</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: #f8fafc; margin: 0; padding: 0; }
+        header { background: #1d3557; color: white; padding: 20px 40px; text-align: center; }
+        .form-card { max-width: 600px; background: white; margin: 30px auto; padding: 30px; border-radius: 10px; border: 1px solid #cbd5e1; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-weight: bold; font-size: 13px; color: #475569; margin-bottom: 5px; }
+        .form-group input, .form-group select { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        .btn { width: 100%; background: #2a9d8f; color: white; border: none; padding: 12px; font-weight: bold; border-radius: 6px; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Partner with WeddingWala</h2>
+        <p>List your banquet hall and manage bookings online</p>
+    </header>
+
+    <div class="form-card">
+        <form id="listVenueForm" onsubmit="submitVenueRegistration(event)">
+            <div class="form-group">
+                <label>Banquet / Venue Name:</label>
+                <input type="text" id="vName" required placeholder="e.g. Royal Banquet">
+            </div>
+
+            <div class="form-group">
+                <label>Address / Location:</label>
+                <input type="text" id="vAddress" required placeholder="e.g. Block 4, Gulshan-e-Iqbal">
+            </div>
+
+            <div class="form-group">
+                <label>Contact Phone Number:</label>
+                <input type="text" id="vPhone" required placeholder="03001234567">
+            </div>
+
+            <div class="form-group">
+                <label>Base Booking Price (PKR):</label>
+                <input type="number" id="vPrice" value="150000" required>
+            </div>
+
+            <div class="form-group">
+                <label>Guest Capacity:</label>
+                <input type="number" id="vCapacity" value="500" required>
+            </div>
+
+            <button type="submit" class="btn">Submit Venue for Approval</button>
+        </form>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+
+        async function submitVenueRegistration(e) {
+            e.preventDefault();
+            const payload = {
+                name: document.getElementById('vName').value,
+                address: document.getElementById('vAddress').value,
+                contactPhone: document.getElementById('vPhone').value,
+                basePrice: Number(document.getElementById('vPrice').value),
+                capacity: Number(document.getElementById('vCapacity').value),
+                isApproved: false // Admin will approve
+            };
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/venues/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                if (data.success) {
+                    alert("Shukriya! Aap ka venue registration submit ho gaya hai. Admin approval ke baad live ho jayega.");
+                    document.getElementById('listVenueForm').reset();
+                }
+            } catch (err) {
+                alert("Registration submit karne mein error aaya.");
+            }
+        }
+    </script>
+</body>
+</html>
