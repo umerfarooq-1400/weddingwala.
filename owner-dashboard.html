@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WeddingWala - Venue Manager Dashboard</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8fafc; margin: 0; padding: 0; }
+        header { background: #1d3557; color: white; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; }
+        .container { max-width: 1100px; margin: 30px auto; padding: 0 20px; }
+        .card { background: white; border: 1px solid #cbd5e1; border-radius: 8px; padding: 20px; margin-bottom: 25px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        h3 { color: #1d3557; margin-top: 0; }
+        table { width: 100%; border-collapse: collapse; text-align: left; font-size: 14px; }
+        th, td { padding: 10px; border-bottom: 1px solid #e2e8f0; }
+        th { background: #f1f5f9; }
+        .btn { background: #1d3557; color: white; border: none; padding: 8px 14px; border-radius: 4px; cursor: pointer; font-weight: bold; }
+    </style>
+</head>
+<body>
+    <header>
+        <h2>Venue Owner Control Panel</h2>
+        <button class="btn" style="background:#e63946;" onclick="logout()">Logout</button>
+    </header>
+
+    <div class="container">
+        <!-- MANUAL OFFLINE CASH BOOKING LOCK -->
+        <div class="card">
+            <h3>Add Offline Cash Booking</h3>
+            <form id="offlineBookingForm" onsubmit="addOfflineBooking(event)" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px;">
+                <input type="text" id="offCustName" placeholder="Customer Name" required style="padding:8px; border:1px solid #cbd5e1; border-radius:4px;">
+                <input type="text" id="offCustPhone" placeholder="Phone Number" required style="padding:8px; border:1px solid #cbd5e1; border-radius:4px;">
+                <input type="date" id="offDate" required style="padding:8px; border:1px solid #cbd5e1; border-radius:4px;">
+                <select id="offSlot" style="padding:8px; border:1px solid #cbd5e1; border-radius:4px;">
+                    <option value="Lunch">Lunch Slot</option>
+                    <option value="Dinner">Dinner Slot</option>
+                </select>
+                <button type="submit" class="btn" style="background: #2a9d8f;">Block Slot Offline</button>
+            </form>
+        </div>
+
+        <!-- BOOKING LIST FOR THIS VENUE -->
+        <div class="card">
+            <h3>Upcoming Hall Bookings</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Slot</th>
+                        <th>Customer</th>
+                        <th>Phone</th>
+                        <th>Advance Paid</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="ownerBookingsBody">
+                    <tr><td colspan="6">Loading venue bookings...</td></tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'http://localhost:5000';
+        const venueId = localStorage.getItem('ownerVenueId');
+
+        async function loadOwnerBookings() {
+            if (!venueId) return;
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/bookings/venue/${venueId}`);
+                const data = await res.json();
+                const tbody = document.getElementById('ownerBookingsBody');
+                tbody.innerHTML = '';
+
+                if (!data.bookings || data.bookings.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6">Koi active booking nahi hai.</td></tr>';
+                    return;
+                }
+
+                data.bookings.forEach(b => {
+                    tbody.innerHTML += `
+                        <tr>
+                            <td><strong>${b.bookingDate}</strong></td>
+                            <td>${b.slot}</td>
+                            <td>${b.customerName}</td>
+                            <td>${b.customerPhone}</td>
+                            <td>Rs. ${Number(b.depositPaid || 0).toLocaleString()}</td>
+                            <td><span style="color:${b.status === 'Confirmed' ? '#16a34a' : '#d97706'}">${b.status}</span></td>
+                        </tr>
+                    `;
+                });
+            } catch (err) {
+                console.error("Bookings error:", err);
+            }
+        }
+
+        async function addOfflineBooking(e) {
+            e.preventDefault();
+            const payload = {
+                venueId,
+                customerName: document.getElementById('offCustName').value,
+                customerPhone: document.getElementById('offCustPhone').value,
+                bookingDate: document.getElementById('offDate').value,
+                slot: document.getElementById('offSlot').value,
+                depositPaid: 10000,
+                totalAmount: 150000,
+                status: 'Confirmed'
+            };
+
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/bookings/lock-slot`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await res.json();
+                alert(data.message);
+                if (data.success) loadOwnerBookings();
+            } catch (err) {
+                alert("Offline booking lock karne mein issue aaya.");
+            }
+        }
+
+        function logout() {
+            localStorage.clear();
+            window.location.href = 'owner-login.html';
+        }
+
+        loadOwnerBookings();
+    </script>
+</body>
+</html>
