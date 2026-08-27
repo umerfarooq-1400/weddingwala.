@@ -13,8 +13,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Hardcoded MongoDB Atlas Connection String
-const MONGODB_URI = process.env.MONGODB_URI || "YOUR_ATLAS_CONNECTION_STRING";
+// MongoDB Connection String (Replace <db_password> with your actual Atlas password)
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:<db_password>@cluster0.9y9ibod.mongodb.net/weddingwala?retryWrites=true&w=majority&appName=Cluster0";
 
 let cachedDb = null;
 
