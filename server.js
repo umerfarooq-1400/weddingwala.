@@ -1,4 +1,3 @@
-require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
@@ -10,56 +9,54 @@ const Review = require('./models/Review');
 
 const app = express();
 
-// Global Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection String (Replace with your actual MongoDB Atlas connection string)
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/weddingwala?retryWrites=true&w=majority";
+// Hardcoded MongoDB Atlas Connection String
+const MONGODB_URI = process.env.MONGODB_URI || "YOUR_ATLAS_CONNECTION_STRING";
 
-// Serverless Caching Connection Variable
 let cachedDb = null;
 
 async function connectToDatabase() {
     if (cachedDb && mongoose.connection.readyState === 1) {
         return cachedDb;
     }
-
-    if (MONGODB_URI.includes("<USERNAME>")) {
-        throw new Error("MONGODB_URI environment variable is missing or using placeholders. Update server.js with your real Atlas connection string.");
-    }
     
-    const db = await mongoose.connect(MONGODB_URI, {
-        serverSelectionTimeoutMS: 5000,
-        bufferCommands: false
-    });
-    cachedDb = db;
-    return cachedDb;
+    try {
+        const db = await mongoose.connect(MONGODB_URI, {
+            serverSelectionTimeoutMS: 5000,
+            bufferCommands: false
+        });
+        cachedDb = db;
+        return cachedDb;
+    } catch (err) {
+        console.error("Database connection fail:", err.message);
+        throw err;
+    }
 }
 
-// Middleware: Database Connection & Graceful Error Catching
+// Global DB Middleware
 app.use(async (req, res, next) => {
     try {
         await connectToDatabase();
         next();
     } catch (error) {
-        console.error("DB Connection Error:", error.message);
         return res.status(500).json({ 
             success: false, 
-            error_type: "DATABASE_CONNECTION_ERROR",
-            message: error.message 
+            message: "Database connection failed. Ensure Atlas IP Access is set to 0.0.0.0/0.",
+            error: error.message 
         });
     }
 });
 
-// Health Check Endpoint
+// Health Check
 app.get('/api/health', (req, res) => {
-    res.json({ success: true, message: "WeddingWala API Backend is Running Smoothly!" });
+    res.json({ success: true, message: "WeddingWala API Backend is Live!" });
 });
 
 // =========================================================================
-// 1. VENUE ROUTES
+// VENUE ROUTES
 // =========================================================================
 
 app.get('/api/venues', async (req, res) => {
@@ -96,7 +93,7 @@ app.patch('/api/venues/approve/:id', async (req, res) => {
 });
 
 // =========================================================================
-// 2. BOOKING & SLOT LOCK ROUTES
+// BOOKING ROUTES
 // =========================================================================
 
 app.post('/api/bookings/lock-slot', async (req, res) => {
@@ -113,30 +110,19 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
         if (existingBooking) {
             return res.status(400).json({ 
                 success: false, 
-                message: "Yeh slot pehle se locked/booked hai. Dusri date ya slot choose karein." 
+                message: "Yeh slot pehle se locked/booked hai." 
             });
         }
 
         const newBooking = new Booking({
-            venueId,
-            customerName,
-            customerPhone,
-            customerEmail,
-            bookingDate,
-            slot,
-            guestCount,
-            totalAmount,
+            venueId, customerName, customerPhone, customerEmail,
+            bookingDate, slot, guestCount, totalAmount,
             depositPaid: depositPaid || 0,
             status: status || 'Pending'
         });
 
         await newBooking.save();
-
-        res.status(201).json({ 
-            success: true, 
-            message: "Slot hold kar diya gaya hai.", 
-            bookingId: newBooking._id 
-        });
+        res.status(201).json({ success: true, message: "Slot locked successfully.", bookingId: newBooking._id });
 
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
@@ -172,7 +158,7 @@ app.post('/api/payments/process-token', async (req, res) => {
 });
 
 // =========================================================================
-// 3. REVIEWS ROUTES
+// REVIEWS ROUTES
 // =========================================================================
 
 app.post('/api/reviews/add', async (req, res) => {
@@ -208,7 +194,6 @@ app.get('/api/reviews/:venueId', async (req, res) => {
     }
 });
 
-// Local Development Setup
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`Local Server: http://localhost:${PORT}`));
