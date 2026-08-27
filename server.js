@@ -16,8 +16,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve Static Frontend Files (index.html, admin.html, styles, scripts)
-app.use(express.static(path.join(__dirname, '/')));
+// Serve Static Frontend Files (index.html, admin.html, styles, etc.)
+app.use(express.static(path.join(__dirname, '.')));
 
 // Serverless-Friendly MongoDB Connection Handler
 let isConnected = false;
@@ -36,15 +36,10 @@ async function connectToDatabase() {
     }
 }
 
-// Middleware to ensure DB connection on every request
+// Ensure Database Connection on every request
 app.use(async (req, res, next) => {
     await connectToDatabase();
     next();
-});
-
-// Serve Main Homepage UI
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
 });
 
 // Root API Health Check Endpoint
@@ -56,6 +51,7 @@ app.get('/api/health', (req, res) => {
 // 1. VENUE ROUTES
 // =========================================================================
 
+// Fetch All Approved Venues
 app.get('/api/venues', async (req, res) => {
     try {
         const venues = await Venue.find({ isApproved: true }).sort({ avgRating: -1 });
@@ -65,6 +61,7 @@ app.get('/api/venues', async (req, res) => {
     }
 });
 
+// Register New Venue
 app.post('/api/venues/register', async (req, res) => {
     try {
         const newVenue = new Venue(req.body);
@@ -75,6 +72,7 @@ app.post('/api/venues/register', async (req, res) => {
     }
 });
 
+// Approve/Reject Venue (Admin)
 app.patch('/api/venues/approve/:id', async (req, res) => {
     try {
         const { isApproved } = req.body;
@@ -93,6 +91,7 @@ app.patch('/api/venues/approve/:id', async (req, res) => {
 // 2. BOOKING & SLOT LOCK ROUTES
 // =========================================================================
 
+// Reserve Slot & Lock
 app.post('/api/bookings/lock-slot', async (req, res) => {
     try {
         const { venueId, customerName, customerPhone, customerEmail, bookingDate, slot, guestCount, totalAmount, status, depositPaid } = req.body;
@@ -140,6 +139,7 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
     }
 });
 
+// Get Venue Bookings (Owner)
 app.get('/api/bookings/venue/:venueId', async (req, res) => {
     try {
         const bookings = await Booking.find({ venueId: req.params.venueId }).sort({ bookingDate: 1 });
@@ -149,6 +149,7 @@ app.get('/api/bookings/venue/:venueId', async (req, res) => {
     }
 });
 
+// Process Token Deposit Payment
 app.post('/api/payments/process-token', async (req, res) => {
     try {
         const { bookingId, customerPhone, depositAmount } = req.body;
@@ -261,7 +262,24 @@ app.get('/api/reviews/:venueId', async (req, res) => {
     }
 });
 
-// Local Execution
+// =========================================================================
+// 4. FRONTEND UI SERVING & FALLBACK (Fixes Cannot GET /)
+// =========================================================================
+
+// Serve main UI homepage
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Catch-all route to serve static HTML pages
+app.get('*', (req, res) => {
+    if (req.path.startsWith('/api')) {
+        return res.status(404).json({ success: false, message: "API Route Not Found" });
+    }
+    res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Local Development Support
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => {
