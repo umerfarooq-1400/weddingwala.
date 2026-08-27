@@ -10,24 +10,29 @@ const Review = require('./models/Review');
 
 const app = express();
 
-// Middlewares
+// Global Middlewares
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serverless-Optimized Database Caching Connection
+// MongoDB Connection String (Fallback Included to Prevent Vercel Crashes)
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:admin123@cluster0.abcde.mongodb.net/weddingwala?retryWrites=true&w=majority";
+
+// Serverless Caching Connection Variable
 let cachedDb = null;
 
 async function connectToDatabase() {
     if (cachedDb && mongoose.connection.readyState === 1) {
         return cachedDb;
     }
+    
     try {
-        const db = await mongoose.connect(process.env.MONGODB_URI, {
+        const db = await mongoose.connect(MONGODB_URI, {
             serverSelectionTimeoutMS: 5000,
             bufferCommands: false
         });
         cachedDb = db;
+        console.log("MongoDB Connected Successfully");
         return cachedDb;
     } catch (err) {
         console.error("MongoDB Connection Failed:", err.message);
@@ -35,7 +40,7 @@ async function connectToDatabase() {
     }
 }
 
-// Middleware to ensure DB connection per API request
+// Ensure DB connection for all incoming API routes
 app.use(async (req, res, next) => {
     try {
         await connectToDatabase();
@@ -43,20 +48,21 @@ app.use(async (req, res, next) => {
     } catch (error) {
         return res.status(500).json({ 
             success: false, 
-            message: "Database Connection Error. Ensure MONGODB_URI is set in Vercel & MongoDB Network Access is 0.0.0.0/0." 
+            message: "Database Connection Error. Ensure MongoDB Atlas IP is set to 0.0.0.0/0." 
         });
     }
 });
 
-// API Status Route
+// Health Check Route
 app.get('/api/health', (req, res) => {
-    res.json({ success: true, message: "WeddingWala Backend Running Successfully!" });
+    res.json({ success: true, message: "WeddingWala API Backend is Running Smoothly!" });
 });
 
 // =========================================================================
 // 1. VENUE ROUTES
 // =========================================================================
 
+// Fetch All Approved Venues
 app.get('/api/venues', async (req, res) => {
     try {
         const venues = await Venue.find({ isApproved: true }).sort({ avgRating: -1 });
@@ -66,6 +72,7 @@ app.get('/api/venues', async (req, res) => {
     }
 });
 
+// Register New Venue
 app.post('/api/venues/register', async (req, res) => {
     try {
         const newVenue = new Venue(req.body);
@@ -76,6 +83,7 @@ app.post('/api/venues/register', async (req, res) => {
     }
 });
 
+// Approve/Reject Venue (Admin)
 app.patch('/api/venues/approve/:id', async (req, res) => {
     try {
         const { isApproved } = req.body;
@@ -84,7 +92,7 @@ app.patch('/api/venues/approve/:id', async (req, res) => {
             { isApproved },
             { new: true }
         );
-        res.json({ success: true, message: `Venue status updated!`, venue: updatedVenue });
+        res.json({ success: true, message: "Venue status updated!", venue: updatedVenue });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -94,6 +102,7 @@ app.patch('/api/venues/approve/:id', async (req, res) => {
 // 2. BOOKING & SLOT LOCK ROUTES
 // =========================================================================
 
+// Reserve Slot & Lock
 app.post('/api/bookings/lock-slot', async (req, res) => {
     try {
         const { venueId, customerName, customerPhone, customerEmail, bookingDate, slot, guestCount, totalAmount, status, depositPaid } = req.body;
@@ -108,7 +117,7 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
         if (existingBooking) {
             return res.status(400).json({ 
                 success: false, 
-                message: "Yeh slot pehle se locked/booked hai. Dusri date ya slot select karein." 
+                message: "Yeh slot pehle se locked/booked hai. Dusri date ya slot choose karein." 
             });
         }
 
@@ -129,7 +138,7 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
 
         res.status(201).json({ 
             success: true, 
-            message: "Slot hold kar diya gaya hai.", 
+            message: "Slot 15 minutes ke liye hold kar diya gaya hai.", 
             bookingId: newBooking._id 
         });
 
@@ -138,6 +147,7 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
     }
 });
 
+// Get Venue Bookings (Owner)
 app.get('/api/bookings/venue/:venueId', async (req, res) => {
     try {
         const bookings = await Booking.find({ venueId: req.params.venueId }).sort({ bookingDate: 1 });
@@ -147,12 +157,13 @@ app.get('/api/bookings/venue/:venueId', async (req, res) => {
     }
 });
 
+// Process Token Deposit Payment
 app.post('/api/payments/process-token', async (req, res) => {
     try {
         const { bookingId, depositAmount } = req.body;
         const booking = await Booking.findById(bookingId);
         if (!booking) {
-            return res.status(404).json({ success: false, message: "Booking nahi mili." });
+            return res.status(404).json({ success: false, message: "Booking record nahi mila." });
         }
 
         booking.depositPaid = Number(depositAmount);
