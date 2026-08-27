@@ -2,7 +2,6 @@ require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
-const path = require('path');
 
 // Import Schemas
 const Venue = require('./models/Venue');
@@ -16,42 +15,48 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// Serve Static Frontend Files (index.html, admin.html, styles, etc.)
-app.use(express.static(path.join(__dirname, '.')));
+// Serverless-Optimized Database Caching Connection
+let cachedDb = null;
 
-// Serverless-Friendly MongoDB Connection Handler
-let isConnected = false;
 async function connectToDatabase() {
-    if (isConnected && mongoose.connection.readyState === 1) {
-        return;
+    if (cachedDb && mongoose.connection.readyState === 1) {
+        return cachedDb;
     }
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://127.0.0.1:27017/weddingwala', {
+        const db = await mongoose.connect(process.env.MONGODB_URI, {
             serverSelectionTimeoutMS: 5000,
+            bufferCommands: false
         });
-        isConnected = true;
-        console.log('MongoDB Database Connected');
+        cachedDb = db;
+        return cachedDb;
     } catch (err) {
-        console.error('MongoDB Connection Error:', err);
+        console.error("MongoDB Connection Failed:", err.message);
+        throw err;
     }
 }
 
-// Ensure Database Connection on every request
+// Middleware to ensure DB connection per API request
 app.use(async (req, res, next) => {
-    await connectToDatabase();
-    next();
+    try {
+        await connectToDatabase();
+        next();
+    } catch (error) {
+        return res.status(500).json({ 
+            success: false, 
+            message: "Database Connection Error. Ensure MONGODB_URI is set in Vercel & MongoDB Network Access is 0.0.0.0/0." 
+        });
+    }
 });
 
-// Root API Health Check Endpoint
+// API Status Route
 app.get('/api/health', (req, res) => {
-    res.json({ success: true, message: "WeddingWala API Backend is Running Successfully!" });
+    res.json({ success: true, message: "WeddingWala Backend Running Successfully!" });
 });
 
 // =========================================================================
 // 1. VENUE ROUTES
 // =========================================================================
 
-// Fetch All Approved Venues
 app.get('/api/venues', async (req, res) => {
     try {
         const venues = await Venue.find({ isApproved: true }).sort({ avgRating: -1 });
@@ -61,7 +66,6 @@ app.get('/api/venues', async (req, res) => {
     }
 });
 
-// Register New Venue
 app.post('/api/venues/register', async (req, res) => {
     try {
         const newVenue = new Venue(req.body);
@@ -72,7 +76,6 @@ app.post('/api/venues/register', async (req, res) => {
     }
 });
 
-// Approve/Reject Venue (Admin)
 app.patch('/api/venues/approve/:id', async (req, res) => {
     try {
         const { isApproved } = req.body;
@@ -91,7 +94,6 @@ app.patch('/api/venues/approve/:id', async (req, res) => {
 // 2. BOOKING & SLOT LOCK ROUTES
 // =========================================================================
 
-// Reserve Slot & Lock
 app.post('/api/bookings/lock-slot', async (req, res) => {
     try {
         const { venueId, customerName, customerPhone, customerEmail, bookingDate, slot, guestCount, totalAmount, status, depositPaid } = req.body;
@@ -106,7 +108,7 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
         if (existingBooking) {
             return res.status(400).json({ 
                 success: false, 
-                message: "Yeh slot already locked/booked hai. Dusri date ya slot choose karein." 
+                message: "Yeh slot pehle se locked/booked hai. Dusri date ya slot select karein." 
             });
         }
 
@@ -127,19 +129,15 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
 
         res.status(201).json({ 
             success: true, 
-            message: status === 'Confirmed' ? "Slot confirm ho gaya!" : "Slot 15 minutes ke liye hold kar diya gaya hai.", 
+            message: "Slot hold kar diya gaya hai.", 
             bookingId: newBooking._id 
         });
 
     } catch (err) {
-        if (err.code === 11000) {
-            return res.status(400).json({ success: false, message: "Conflict: Slot pehle hi locked hai." });
-        }
         res.status(500).json({ success: false, message: err.message });
     }
 });
 
-// Get Venue Bookings (Owner)
 app.get('/api/bookings/venue/:venueId', async (req, res) => {
     try {
         const bookings = await Booking.find({ venueId: req.params.venueId }).sort({ bookingDate: 1 });
@@ -149,60 +147,22 @@ app.get('/api/bookings/venue/:venueId', async (req, res) => {
     }
 });
 
-// Process Token Deposit Payment
 app.post('/api/payments/process-token', async (req, res) => {
     try {
-        const { bookingId, customerPhone, depositAmount } = req.body;
-
-        const booking = await Booking.findById(bookingId).populate('venueId');
+        const { bookingId, depositAmount } = req.body;
+        const booking = await Booking.findById(bookingId);
         if (!booking) {
-            return res.status(404).json({ success: false, message: "Booking record nahi mila." });
+            return res.status(404).json({ success: false, message: "Booking nahi mili." });
         }
 
-        const txnRefNo = "TKN-" + Date.now();
-
         booking.depositPaid = Number(depositAmount);
-        booking.paymentTxnRef = txnRefNo;
+        booking.paymentTxnRef = "TKN-" + Date.now();
         booking.status = 'Confirmed';
         await booking.save();
 
-        res.status(200).json({
-            success: true,
-            message: "Payment success! Receipt generation complete.",
-            txnRefNo
-        });
-
+        res.status(200).json({ success: true, message: "Payment status confirmed!" });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
-    }
-});
-
-// Vercel-Safe PDF Invoice Route
-app.get('/api/bookings/invoice/:bookingId', async (req, res) => {
-    try {
-        const PDFDocument = require('pdfkit');
-        const booking = await Booking.findById(req.params.bookingId).populate('venueId');
-        
-        if (!booking) {
-            return res.status(404).json({ success: false, message: "Booking record nahi mila." });
-        }
-
-        const doc = new PDFDocument({ margin: 50 });
-        res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `inline; filename=Invoice_${booking._id}.pdf`);
-
-        doc.pipe(res);
-        doc.fontSize(20).text('WeddingWala Booking Receipt', { align: 'center' });
-        doc.moveDown();
-        doc.fontSize(12).text(`Booking ID: ${booking._id}`);
-        doc.text(`Customer Name: ${booking.customerName}`);
-        doc.text(`Date: ${booking.bookingDate}`);
-        doc.text(`Slot: ${booking.slot}`);
-        doc.text(`Deposit Paid: Rs. ${booking.depositPaid}`);
-        doc.end();
-
-    } catch (err) {
-        res.status(500).json({ success: false, message: "PDF generation failed: " + err.message });
     }
 });
 
@@ -213,41 +173,22 @@ app.get('/api/bookings/invoice/:bookingId', async (req, res) => {
 app.post('/api/reviews/add', async (req, res) => {
     try {
         const { venueId, customerName, customerEmail, rating, comment } = req.body;
-
-        if (!venueId || !customerName || !rating || !comment) {
-            return res.status(400).json({ success: false, message: "Fields complete enter karein." });
-        }
-
-        const newReview = new Review({
-            venueId,
-            customerName,
-            customerEmail,
-            rating: Number(rating),
-            comment
-        });
+        const newReview = new Review({ venueId, customerName, customerEmail, rating: Number(rating), comment });
         await newReview.save();
 
         const stats = await Review.aggregate([
             { $match: { venueId: new mongoose.Types.ObjectId(venueId) } },
-            {
-                $group: {
-                    _id: '$venueId',
-                    avgRating: { $avg: '$rating' },
-                    totalReviews: { $sum: 1 }
-                }
-            }
+            { $group: { _id: '$venueId', avgRating: { $avg: '$rating' }, totalReviews: { $sum: 1 } } }
         ]);
 
         if (stats.length > 0) {
-            const roundedAvg = Math.round(stats[0].avgRating * 10) / 10;
             await Venue.findByIdAndUpdate(venueId, {
-                avgRating: roundedAvg,
+                avgRating: Math.round(stats[0].avgRating * 10) / 10,
                 totalReviews: stats[0].totalReviews
             });
         }
 
         res.status(201).json({ success: true, message: "Review added!", review: newReview });
-
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }
@@ -262,29 +203,10 @@ app.get('/api/reviews/:venueId', async (req, res) => {
     }
 });
 
-// =========================================================================
-// 4. FRONTEND UI SERVING & FALLBACK (Fixes Cannot GET /)
-// =========================================================================
-
-// Serve main UI homepage
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
-// Catch-all route to serve static HTML pages
-app.get('*', (req, res) => {
-    if (req.path.startsWith('/api')) {
-        return res.status(404).json({ success: false, message: "API Route Not Found" });
-    }
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
-
 // Local Development Support
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-        console.log(`WeddingWala Local Server running on port ${PORT}`);
-    });
+    app.listen(PORT, () => console.log(`Local Server: http://localhost:${PORT}`));
 }
 
 module.exports = app;
