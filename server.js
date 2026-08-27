@@ -15,8 +15,8 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// MongoDB Connection String (Fallback Included to Prevent Vercel Crashes)
-const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://admin:admin123@cluster0.abcde.mongodb.net/weddingwala?retryWrites=true&w=majority";
+// MongoDB Connection String (Replace with your actual MongoDB Atlas connection string)
+const MONGODB_URI = process.env.MONGODB_URI || "mongodb+srv://<USERNAME>:<PASSWORD>@<CLUSTER>.mongodb.net/weddingwala?retryWrites=true&w=majority";
 
 // Serverless Caching Connection Variable
 let cachedDb = null;
@@ -25,35 +25,35 @@ async function connectToDatabase() {
     if (cachedDb && mongoose.connection.readyState === 1) {
         return cachedDb;
     }
-    
-    try {
-        const db = await mongoose.connect(MONGODB_URI, {
-            serverSelectionTimeoutMS: 5000,
-            bufferCommands: false
-        });
-        cachedDb = db;
-        console.log("MongoDB Connected Successfully");
-        return cachedDb;
-    } catch (err) {
-        console.error("MongoDB Connection Failed:", err.message);
-        throw err;
+
+    if (MONGODB_URI.includes("<USERNAME>")) {
+        throw new Error("MONGODB_URI environment variable is missing or using placeholders. Update server.js with your real Atlas connection string.");
     }
+    
+    const db = await mongoose.connect(MONGODB_URI, {
+        serverSelectionTimeoutMS: 5000,
+        bufferCommands: false
+    });
+    cachedDb = db;
+    return cachedDb;
 }
 
-// Ensure DB connection for all incoming API routes
+// Middleware: Database Connection & Graceful Error Catching
 app.use(async (req, res, next) => {
     try {
         await connectToDatabase();
         next();
     } catch (error) {
+        console.error("DB Connection Error:", error.message);
         return res.status(500).json({ 
             success: false, 
-            message: "Database Connection Error. Ensure MongoDB Atlas IP is set to 0.0.0.0/0." 
+            error_type: "DATABASE_CONNECTION_ERROR",
+            message: error.message 
         });
     }
 });
 
-// Health Check Route
+// Health Check Endpoint
 app.get('/api/health', (req, res) => {
     res.json({ success: true, message: "WeddingWala API Backend is Running Smoothly!" });
 });
@@ -62,7 +62,6 @@ app.get('/api/health', (req, res) => {
 // 1. VENUE ROUTES
 // =========================================================================
 
-// Fetch All Approved Venues
 app.get('/api/venues', async (req, res) => {
     try {
         const venues = await Venue.find({ isApproved: true }).sort({ avgRating: -1 });
@@ -72,7 +71,6 @@ app.get('/api/venues', async (req, res) => {
     }
 });
 
-// Register New Venue
 app.post('/api/venues/register', async (req, res) => {
     try {
         const newVenue = new Venue(req.body);
@@ -83,7 +81,6 @@ app.post('/api/venues/register', async (req, res) => {
     }
 });
 
-// Approve/Reject Venue (Admin)
 app.patch('/api/venues/approve/:id', async (req, res) => {
     try {
         const { isApproved } = req.body;
@@ -102,7 +99,6 @@ app.patch('/api/venues/approve/:id', async (req, res) => {
 // 2. BOOKING & SLOT LOCK ROUTES
 // =========================================================================
 
-// Reserve Slot & Lock
 app.post('/api/bookings/lock-slot', async (req, res) => {
     try {
         const { venueId, customerName, customerPhone, customerEmail, bookingDate, slot, guestCount, totalAmount, status, depositPaid } = req.body;
@@ -138,7 +134,7 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
 
         res.status(201).json({ 
             success: true, 
-            message: "Slot 15 minutes ke liye hold kar diya gaya hai.", 
+            message: "Slot hold kar diya gaya hai.", 
             bookingId: newBooking._id 
         });
 
@@ -147,7 +143,6 @@ app.post('/api/bookings/lock-slot', async (req, res) => {
     }
 });
 
-// Get Venue Bookings (Owner)
 app.get('/api/bookings/venue/:venueId', async (req, res) => {
     try {
         const bookings = await Booking.find({ venueId: req.params.venueId }).sort({ bookingDate: 1 });
@@ -157,7 +152,6 @@ app.get('/api/bookings/venue/:venueId', async (req, res) => {
     }
 });
 
-// Process Token Deposit Payment
 app.post('/api/payments/process-token', async (req, res) => {
     try {
         const { bookingId, depositAmount } = req.body;
@@ -214,7 +208,7 @@ app.get('/api/reviews/:venueId', async (req, res) => {
     }
 });
 
-// Local Development Support
+// Local Development Setup
 if (process.env.NODE_ENV !== 'production') {
     const PORT = process.env.PORT || 5000;
     app.listen(PORT, () => console.log(`Local Server: http://localhost:${PORT}`));
